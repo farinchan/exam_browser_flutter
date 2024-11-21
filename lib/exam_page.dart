@@ -5,8 +5,8 @@ import 'dart:developer';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_windowmanager_plus/flutter_windowmanager_plus.dart';
 import 'package:kiosk_mode/kiosk_mode.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 class ExamPage extends StatefulWidget {
   const ExamPage({super.key});
@@ -15,39 +15,39 @@ class ExamPage extends StatefulWidget {
   State<ExamPage> createState() => _ExamPageState();
 }
 
-void enableSecureScreen() async {
-  await FlutterWindowManagerPlus.addFlags(FlutterWindowManagerPlus.FLAG_SECURE);
-  await FlutterWindowManagerPlus.addFlags(
-      FlutterWindowManagerPlus.FLAG_FULLSCREEN);
+void InfoKioskMode(context) async {
+  var kioskMode = await getKioskMode();
+
+  if (kioskMode == KioskMode.enabled) {
+    log('Kiosk mode enabled');
+    return;
+  } else {
+    log('Kiosk mode disabled');
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Peringatan!'),
+          content: Text(
+              'Kiosk Mode belum aktif, aktifkan kiosk mode terlebih dahulu untuk melanjutkan ujian'),
+          actions: [
+            ElevatedButton(
+              onPressed: () async {
+                await startKioskMode();
+                Navigator.of(context).pop();
+              },
+              child: Text('Aktifkan'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 void enableKioskMode(context) async {
   await startKioskMode();
-  watchKioskMode().listen((kioskMode) {
-    if (kioskMode == KioskMode.enabled) {
-      log('Kiosk mode enabled');
-    } else {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Peringatan!'),
-            content:
-                Text('Kamu Belum Mengaktifkan Kiosk Mode, Silahkan Aktifkan'),
-            actions: [
-              ElevatedButton(
-                onPressed: () async {
-                  await startKioskMode();
-                  Navigator.of(context).pop();
-                },
-                child: Text('Aktifkan'),
-              ),
-            ],
-          );
-        },
-      );
-    }
-  });
 }
 
 class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
@@ -60,7 +60,9 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
               content: Text("Anda yakin ingin keluar dari ujian?"),
               actions: [
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
                   child: Text("Tidak"),
                 ),
                 ElevatedButton(
@@ -81,7 +83,6 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
   void initState() {
     // TODO: implement initState
     super.initState();
-    enableSecureScreen();
     enableKioskMode(context);
     WidgetsBinding.instance.addObserver(this);
   }
@@ -109,8 +110,32 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
       );
 
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+      InfoKioskMode(context);
     }
   }
+
+  var webController = WebViewController()
+    ..setJavaScriptMode(JavaScriptMode.unrestricted)
+    ..setNavigationDelegate(
+      NavigationDelegate(
+        onProgress: (int progress) {
+          log('Loading: $progress%');
+        },
+        onPageStarted: (String url) {},
+        onPageFinished: (String url) {},
+        onHttpError: (HttpResponseError error) {},
+        onWebResourceError: (WebResourceError error) {},
+        onNavigationRequest: (NavigationRequest request) {
+          if (request.url.startsWith('https://www.youtube.com/')) {
+            return NavigationDecision.prevent;
+          }
+          return NavigationDecision.navigate;
+        },
+      ),
+    )
+    ..loadRequest(
+        Uri.parse('https://elearning.man1kotapadangpanjang.sch.id/login'));
 
   @override
   Widget build(BuildContext context) {
@@ -120,12 +145,7 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
         await _showExitConfirmation(context);
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Exam Page'),
-        ),
-        body: const Center(
-          child: Text('This is the exam page'),
-        ),
+        body: Center(child: WebViewWidget(controller: webController)),
       ),
     );
   }
