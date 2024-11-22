@@ -3,6 +3,7 @@
 import 'dart:developer';
 
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:elearning_mobile_app/common/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kiosk_mode/kiosk_mode.dart';
@@ -83,6 +84,13 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
   void initState() {
     // TODO: implement initState
     super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [
+      SystemUiOverlay.top,
+    ]);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.white,
+      statusBarIconBrightness: Brightness.dark,
+    ));
     enableKioskMode(context);
     WidgetsBinding.instance.addObserver(this);
   }
@@ -121,6 +129,10 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
       NavigationDelegate(
         onProgress: (int progress) {
           log('Loading: $progress%');
+          AlertDialog(
+            title: Text('Loading...'),
+            content: LinearProgressIndicator(value: progress / 100),
+          );
         },
         onPageStarted: (String url) {},
         onPageFinished: (String url) {},
@@ -134,8 +146,7 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
         },
       ),
     )
-    ..loadRequest(
-        Uri.parse('https://elearning.man1kotapadangpanjang.sch.id/login'));
+    ..loadRequest(Uri.parse(Constants.baseUrl));
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +156,7 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
         await _showExitConfirmation(context);
       },
       child: Scaffold(
-        body: Center(child: WebViewWidget(controller: webController)),
+        body: SafeArea(child: WebViewWidget(controller: webController)),
       ),
     );
   }

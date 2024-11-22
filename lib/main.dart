@@ -1,4 +1,4 @@
-import 'package:elearning_mobile_app/exam_page.dart';
+import 'package:elearning_mobile_app/presentation/pages/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -18,7 +18,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      title: 'E-Learning MAN 1 Padang Panjang',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         pageTransitionsTheme: PageTransitionsTheme(
@@ -28,7 +29,7 @@ class MyApp extends StatelessWidget {
           },
         ),
       ),
-      home: const ExamPage(),
+      home: const SplashScreen(),
     );
   }
 }
