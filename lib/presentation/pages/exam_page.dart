@@ -80,6 +80,9 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
         false; // Default to false if dialog is dismissed
   }
 
+  late WebViewController webController;
+  int webProgress = 0;
+
   @override
   void initState() {
     // TODO: implement initState
@@ -93,6 +96,29 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
     ));
     enableKioskMode(context);
     WidgetsBinding.instance.addObserver(this);
+    webController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (int progress) {
+            log('Loading: $progress%');
+            setState(() {
+              webProgress = progress;
+            });
+          },
+          onPageStarted: (String url) {},
+          onPageFinished: (String url) {},
+          onHttpError: (HttpResponseError error) {},
+          onWebResourceError: (WebResourceError error) {},
+          onNavigationRequest: (NavigationRequest request) {
+            if (request.url.startsWith('https://www.youtube.com/')) {
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(Constants.baseUrl));
   }
 
   @override
@@ -123,31 +149,6 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
     }
   }
 
-  var webController = WebViewController()
-    ..setJavaScriptMode(JavaScriptMode.unrestricted)
-    ..setNavigationDelegate(
-      NavigationDelegate(
-        onProgress: (int progress) {
-          log('Loading: $progress%');
-          AlertDialog(
-            title: Text('Loading...'),
-            content: LinearProgressIndicator(value: progress / 100),
-          );
-        },
-        onPageStarted: (String url) {},
-        onPageFinished: (String url) {},
-        onHttpError: (HttpResponseError error) {},
-        onWebResourceError: (WebResourceError error) {},
-        onNavigationRequest: (NavigationRequest request) {
-          if (request.url.startsWith('https://www.youtube.com/')) {
-            return NavigationDecision.prevent;
-          }
-          return NavigationDecision.navigate;
-        },
-      ),
-    )
-    ..loadRequest(Uri.parse(Constants.baseUrl));
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -156,7 +157,22 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
         await _showExitConfirmation(context);
       },
       child: Scaffold(
-        body: SafeArea(child: WebViewWidget(controller: webController)),
+        body: SafeArea(
+            child: Column(
+          children: [
+            webProgress == 100
+                ? SizedBox.shrink()
+                : SizedBox(
+                    height: 4,
+                    child: LinearProgressIndicator(
+                      value: webProgress / 100,
+                      backgroundColor: Colors.white,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                    ),
+                  ),
+            Expanded(child: WebViewWidget(controller: webController)),
+          ],
+        )),
       ),
     );
   }
